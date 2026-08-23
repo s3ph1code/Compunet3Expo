@@ -212,3 +212,11 @@ export default DataLayerCheck;
 Luego `npm start` y abre el proyecto con Expo Go. Carga los datos de prueba, cierra la app por completo, vuelve a abrirla: si el balance sigue igual, la persistencia funciona.
 
 Acuérdate de devolver `App.js` a como estaba cuando termines.
+
+### Sin celular a la mano
+
+`npm run web` abre la app en el navegador. Sirve para desarrollar pantallas y gráficas sin depender de un dispositivo.
+
+Con eso ya se verificó que la capa de datos funciona de punta a punta: crear, editar, borrar, los cálculos y que los datos sobrevivan a recargar la página.
+
+Un detalle a tener presente: en web AsyncStorage usa `localStorage` por debajo, no el módulo nativo. Para el 99% del trabajo diario da igual, pero la prueba final de persistencia conviene hacerla en un teléfono.
