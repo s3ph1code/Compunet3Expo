@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,11 +11,21 @@ import {
 import {
   useTransactions,
   getCategoriesForType,
+  getTransactionById,
   TRANSACTION_TYPES,
 } from '../index';
 
-export default function TransactionFormScreen({ navigation }) {
-  const { addTransaction } = useTransactions();
+export default function TransactionFormScreen({
+  navigation,
+  route,
+}) {
+  const {
+    addTransaction,
+    updateTransaction,
+  } = useTransactions();
+
+  const transactionId = route.params?.transactionId;
+  const isEditing = Boolean(transactionId);
 
   const [type, setType] = useState(TRANSACTION_TYPES.EXPENSE);
   const [amount, setAmount] = useState('');
@@ -24,8 +33,48 @@ export default function TransactionFormScreen({ navigation }) {
   const [date, setDate] = useState('');
   const [note, setNote] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [loadingTransaction, setLoadingTransaction] = useState(false);
 
   const categories = getCategoriesForType(type);
+
+  useEffect(() => {
+    const loadTransaction = async () => {
+      if (!isEditing) {
+        return;
+      }
+
+      setLoadingTransaction(true);
+
+      try {
+        const transaction = await getTransactionById(transactionId);
+
+        if (!transaction) {
+          setSaveError('No se encontró la transacción.');
+          return;
+        }
+
+        setType(transaction.type);
+        setAmount(String(transaction.amount));
+        setCategory(transaction.category);
+        setDate(transaction.date);
+        setNote(transaction.note || '');
+      } catch (error) {
+        setSaveError(
+          error?.message || 'No se pudo cargar la transacción'
+        );
+      } finally {
+        setLoadingTransaction(false);
+      }
+    };
+
+    loadTransaction();
+  }, [isEditing, transactionId]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: isEditing ? 'Editar transacción' : 'Nueva transacción',
+    });
+  }, [navigation, isEditing]);
 
   const handleTypeChange = (newType) => {
     setType(newType);
@@ -36,7 +85,7 @@ export default function TransactionFormScreen({ navigation }) {
   const handleSave = async () => {
     setSaveError('');
 
-    const transaction = {
+    const transactionData = {
       type,
       amount: Number(amount),
       category,
@@ -44,12 +93,15 @@ export default function TransactionFormScreen({ navigation }) {
       note,
     };
 
-    console.log('Intentando guardar:', transaction);
-
     try {
-      await addTransaction(transaction);
-
-      console.log('Transacción guardada correctamente');
+      if (isEditing) {
+        await updateTransaction(
+          transactionId,
+          transactionData
+        );
+      } else {
+        await addTransaction(transactionData);
+      }
 
       navigation.goBack();
     } catch (error) {
@@ -61,9 +113,21 @@ export default function TransactionFormScreen({ navigation }) {
     }
   };
 
+  if (loadingTransaction) {
+    return (
+      <View style={styles.center}>
+        <Text>Cargando transacción...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Nueva transacción</Text>
+      <Text style={styles.title}>
+        {isEditing
+          ? 'Editar transacción'
+          : 'Nueva transacción'}
+      </Text>
 
       <Text style={styles.label}>Tipo</Text>
 
@@ -135,7 +199,8 @@ export default function TransactionFormScreen({ navigation }) {
               key={item}
               style={[
                 styles.categoryButton,
-                isSelected && styles.categoryButtonActive,
+                isSelected &&
+                  styles.categoryButtonActive,
               ]}
               onPress={() => {
                 setCategory(item);
@@ -145,7 +210,8 @@ export default function TransactionFormScreen({ navigation }) {
               <Text
                 style={[
                   styles.categoryButtonText,
-                  isSelected && styles.categoryButtonTextActive,
+                  isSelected &&
+                    styles.categoryButtonTextActive,
                 ]}
               >
                 {item}
@@ -198,7 +264,9 @@ export default function TransactionFormScreen({ navigation }) {
         onPress={handleSave}
       >
         <Text style={styles.saveButtonText}>
-          Guardar transacción
+          {isEditing
+            ? 'Guardar cambios'
+            : 'Guardar transacción'}
         </Text>
       </Pressable>
     </ScrollView>
@@ -209,6 +277,12 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     gap: 10,
+  },
+
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   title: {
