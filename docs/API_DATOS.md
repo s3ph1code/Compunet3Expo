@@ -195,4 +195,20 @@ src/
 npm test
 ```
 
-71 tests sobre los cálculos, el CRUD, los datos de prueba y el contrato público. Corren sin abrir la app: AsyncStorage está simulado en memoria (`jest.setup.js`).
+85 tests sobre los cálculos, el CRUD, el hook, los datos de prueba y el contrato público. Corren sin abrir la app: AsyncStorage está simulado en memoria (`jest.setup.js`).
+
+## Probar la persistencia en un dispositivo real
+
+Los tests usan AsyncStorage simulado. Para comprobar que los datos sobreviven a cerrar la app, hay una pantalla de verificación en `src/dev/DataLayerCheck.js`.
+
+Reemplaza temporalmente el contenido de `App.js` por:
+
+```js
+import DataLayerCheck from './src/dev/DataLayerCheck';
+
+export default DataLayerCheck;
+```
+
+Luego `npm start` y abre el proyecto con Expo Go. Carga los datos de prueba, cierra la app por completo, vuelve a abrirla: si el balance sigue igual, la persistencia funciona.
+
+Acuérdate de devolver `App.js` a como estaba cuando termines.
