@@ -1,24 +1,26 @@
 import { useCallback } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { useTransactions } from '../index';
+import { useTransactions, seedMockData } from '../index';
+import {
+  ScreenContainer,
+  Card,
+  StatCard,
+  Button,
+  SectionHeader,
+  EmptyState,
+} from '../components';
+import { colors, spacing, typography, formatCurrency } from '../theme';
 
 export default function HomeScreen({ navigation }) {
-  const {
-    transactions,
-    totals,
-    balance,
-    loading,
-    error,
-    refresh,
-  } = useTransactions();
+  const { transactions, totals, balance, loading, error, refresh } =
+    useTransactions();
+
+  const loadDemoData = async () => {
+    await seedMockData();
+    await refresh();
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -29,7 +31,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text>Cargando datos...</Text>
+        <Text style={typography.body}>Cargando datos...</Text>
       </View>
     );
   }
@@ -37,7 +39,7 @@ export default function HomeScreen({ navigation }) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text>Error: {error}</Text>
+        <Text style={styles.errorText}>Error: {String(error?.message || error)}</Text>
       </View>
     );
   }
@@ -45,251 +47,166 @@ export default function HomeScreen({ navigation }) {
   const latestTransactions = transactions.slice(0, 5);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScreenContainer>
       <Text style={styles.title}>Resumen financiero</Text>
 
-      <View style={styles.balanceCard}>
+      <Card style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Balance actual</Text>
-
         <Text
           style={[
             styles.balanceValue,
             balance < 0 ? styles.negative : styles.positive,
           ]}
         >
-          ${balance}
+          {formatCurrency(balance)}
         </Text>
-      </View>
+      </Card>
 
       <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Ingresos</Text>
-          <Text style={[styles.summaryValue, styles.positive]}>
-            ${totals.income}
-          </Text>
-        </View>
-
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Gastos</Text>
-          <Text style={[styles.summaryValue, styles.negative]}>
-            ${totals.expense}
-          </Text>
-        </View>
+        <StatCard
+          label="Ingresos"
+          value={totals.income}
+          tone="income"
+          icon="↑"
+          style={styles.summaryCard}
+        />
+        <StatCard
+          label="Gastos"
+          value={totals.expense}
+          tone="expense"
+          icon="↓"
+          style={styles.summaryCard}
+        />
       </View>
 
-      <Pressable
-        style={styles.addButton}
+      <Button
+        title="+  Agregar transacción"
         onPress={() => navigation.navigate('TransactionForm')}
-      >
-        <Text style={styles.addButtonText}>
-          + Agregar transacción
-        </Text>
-      </Pressable>
+        style={styles.addButton}
+      />
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          Últimos movimientos
-        </Text>
-
-        <Pressable
-          onPress={() => navigation.navigate('Historial')}
-        >
-          <Text style={styles.viewAllText}>
-            Ver historial
-          </Text>
-        </Pressable>
-      </View>
+      <SectionHeader
+        title="Últimos movimientos"
+        actionLabel="Ver historial"
+        onAction={() => navigation.navigate('Historial')}
+      />
 
       {latestTransactions.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            No hay movimientos registrados.
-          </Text>
-        </View>
+        <Card>
+          <EmptyState
+            icon="🧾"
+            title="Sin movimientos"
+            message="Agrega tu primera transacción para empezar a ver tu resumen."
+          />
+          <Button
+            title="Cargar datos de prueba"
+            variant="ghost"
+            onPress={loadDemoData}
+            style={styles.demoButton}
+          />
+        </Card>
       ) : (
         latestTransactions.map((transaction) => {
           const isExpense = transaction.type === 'expense';
 
           return (
-            <View
-              key={transaction.id}
-              style={styles.transactionCard}
-            >
-              <View>
-                <Text style={styles.category}>
-                  {transaction.category}
-                </Text>
-
-                <Text style={styles.date}>
-                  {transaction.date}
-                </Text>
-
+            <Card key={transaction.id} style={styles.transactionCard}>
+              <View style={styles.transactionInfo}>
+                <Text style={styles.category}>{transaction.category}</Text>
+                <Text style={styles.date}>{transaction.date}</Text>
                 {transaction.note ? (
-                  <Text style={styles.note}>
-                    {transaction.note}
-                  </Text>
+                  <Text style={styles.note}>{transaction.note}</Text>
                 ) : null}
               </View>
 
               <Text
                 style={[
                   styles.transactionAmount,
-                  isExpense
-                    ? styles.negative
-                    : styles.positive,
+                  isExpense ? styles.negative : styles.positive,
                 ]}
               >
-                {isExpense ? '-' : '+'}${transaction.amount}
+                {isExpense ? '-' : '+'}
+                {formatCurrency(transaction.amount)}
               </Text>
-            </View>
+            </Card>
           );
         })
       )}
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 18,
-    paddingBottom: 30,
-  },
-
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
-
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 16,
+    ...typography.title,
+    marginBottom: spacing.lg,
   },
-
   balanceCard: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
-    padding: 18,
-    backgroundColor: '#fff',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-
   balanceLabel: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.label,
   },
-
   balanceValue: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
-    marginTop: 6,
+    marginTop: spacing.xs,
   },
-
   summaryRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
-
   summaryCard: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: '#fff',
   },
-
-  summaryLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 5,
-  },
-
-  positive: {
-    color: '#16a34a',
-  },
-
-  negative: {
-    color: '#dc2626',
-  },
-
   addButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 9,
-    alignItems: 'center',
-    marginBottom: 22,
+    marginBottom: spacing.xl,
   },
-
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+  demoButton: {
+    marginTop: spacing.md,
   },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-  },
-
-  viewAllText: {
-    color: '#2563eb',
-    fontWeight: '600',
-  },
-
-  emptyContainer: {
-    paddingVertical: 30,
-    alignItems: 'center',
-  },
-
-  emptyText: {
-    color: '#666',
-  },
-
   transactionCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    backgroundColor: '#fff',
+    marginBottom: spacing.md,
   },
-
+  transactionInfo: {
+    flexShrink: 1,
+    paddingRight: spacing.md,
+  },
   category: {
     fontSize: 16,
     fontWeight: '700',
+    color: colors.text,
   },
-
   date: {
-    color: '#666',
+    color: colors.textMuted,
     marginTop: 3,
   },
-
   note: {
-    color: '#444',
+    color: colors.text,
     marginTop: 5,
   },
-
   transactionAmount: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  positive: {
+    color: colors.income,
+  },
+  negative: {
+    color: colors.expense,
+  },
+  errorText: {
+    color: colors.expense,
+    ...typography.body,
   },
 });

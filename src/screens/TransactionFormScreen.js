@@ -1,12 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 
 import {
   useTransactions,
@@ -14,15 +7,11 @@ import {
   getTransactionById,
   TRANSACTION_TYPES,
 } from '../index';
+import { ScreenContainer, Input, Button } from '../components';
+import { colors, spacing, radii, typography } from '../theme';
 
-export default function TransactionFormScreen({
-  navigation,
-  route,
-}) {
-  const {
-    addTransaction,
-    updateTransaction,
-  } = useTransactions();
+export default function TransactionFormScreen({ navigation, route }) {
+  const { addTransaction, updateTransaction } = useTransactions();
 
   const transactionId = route.params?.transactionId;
   const isEditing = Boolean(transactionId);
@@ -39,29 +28,22 @@ export default function TransactionFormScreen({
 
   useEffect(() => {
     const loadTransaction = async () => {
-      if (!isEditing) {
-        return;
-      }
+      if (!isEditing) return;
 
       setLoadingTransaction(true);
-
       try {
         const transaction = await getTransactionById(transactionId);
-
         if (!transaction) {
           setSaveError('No se encontró la transacción.');
           return;
         }
-
         setType(transaction.type);
         setAmount(String(transaction.amount));
         setCategory(transaction.category);
         setDate(transaction.date);
         setNote(transaction.note || '');
       } catch (error) {
-        setSaveError(
-          error?.message || 'No se pudo cargar la transacción'
-        );
+        setSaveError(error?.message || 'No se pudo cargar la transacción');
       } finally {
         setLoadingTransaction(false);
       }
@@ -95,58 +77,44 @@ export default function TransactionFormScreen({
 
     try {
       if (isEditing) {
-        await updateTransaction(
-          transactionId,
-          transactionData
-        );
+        await updateTransaction(transactionId, transactionData);
       } else {
         await addTransaction(transactionData);
       }
-
       navigation.goBack();
     } catch (error) {
       console.error('Error al guardar:', error);
-
-      setSaveError(
-        error?.message || 'No se pudo guardar la transacción'
-      );
+      setSaveError(error?.message || 'No se pudo guardar la transacción');
     }
   };
 
   if (loadingTransaction) {
     return (
       <View style={styles.center}>
-        <Text>Cargando transacción...</Text>
+        <Text style={typography.body}>Cargando transacción...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScreenContainer contentContainerStyle={styles.content}>
       <Text style={styles.title}>
-        {isEditing
-          ? 'Editar transacción'
-          : 'Nueva transacción'}
+        {isEditing ? 'Editar transacción' : 'Nueva transacción'}
       </Text>
 
       <Text style={styles.label}>Tipo</Text>
-
       <View style={styles.row}>
         <Pressable
           style={[
             styles.typeButton,
-            type === TRANSACTION_TYPES.INCOME &&
-              styles.typeButtonActive,
+            type === TRANSACTION_TYPES.INCOME && styles.typeIncomeActive,
           ]}
-          onPress={() =>
-            handleTypeChange(TRANSACTION_TYPES.INCOME)
-          }
+          onPress={() => handleTypeChange(TRANSACTION_TYPES.INCOME)}
         >
           <Text
             style={[
-              styles.typeButtonText,
-              type === TRANSACTION_TYPES.INCOME &&
-                styles.typeButtonTextActive,
+              styles.typeText,
+              type === TRANSACTION_TYPES.INCOME && styles.typeTextActive,
             ]}
           >
             Ingreso
@@ -156,18 +124,14 @@ export default function TransactionFormScreen({
         <Pressable
           style={[
             styles.typeButton,
-            type === TRANSACTION_TYPES.EXPENSE &&
-              styles.typeButtonActive,
+            type === TRANSACTION_TYPES.EXPENSE && styles.typeExpenseActive,
           ]}
-          onPress={() =>
-            handleTypeChange(TRANSACTION_TYPES.EXPENSE)
-          }
+          onPress={() => handleTypeChange(TRANSACTION_TYPES.EXPENSE)}
         >
           <Text
             style={[
-              styles.typeButtonText,
-              type === TRANSACTION_TYPES.EXPENSE &&
-                styles.typeButtonTextActive,
+              styles.typeText,
+              type === TRANSACTION_TYPES.EXPENSE && styles.typeTextActive,
             ]}
           >
             Gasto
@@ -175,10 +139,8 @@ export default function TransactionFormScreen({
         </Pressable>
       </View>
 
-      <Text style={styles.label}>Monto</Text>
-
-      <TextInput
-        style={styles.input}
+      <Input
+        label="Monto"
         value={amount}
         onChangeText={(value) => {
           setAmount(value);
@@ -189,18 +151,15 @@ export default function TransactionFormScreen({
       />
 
       <Text style={styles.label}>Categoría</Text>
-
       <View style={styles.categoriesContainer}>
         {categories.map((item) => {
           const isSelected = category === item;
-
           return (
             <Pressable
               key={item}
               style={[
-                styles.categoryButton,
-                isSelected &&
-                  styles.categoryButtonActive,
+                styles.categoryChip,
+                isSelected && styles.categoryChipActive,
               ]}
               onPress={() => {
                 setCategory(item);
@@ -209,9 +168,8 @@ export default function TransactionFormScreen({
             >
               <Text
                 style={[
-                  styles.categoryButtonText,
-                  isSelected &&
-                    styles.categoryButtonTextActive,
+                  styles.categoryText,
+                  isSelected && styles.categoryTextActive,
                 ]}
               >
                 {item}
@@ -221,17 +179,8 @@ export default function TransactionFormScreen({
         })}
       </View>
 
-      <Text style={styles.selectedText}>
-        Categoría seleccionada:{' '}
-        <Text style={styles.selectedValue}>
-          {category || 'Ninguna'}
-        </Text>
-      </Text>
-
-      <Text style={styles.label}>Fecha</Text>
-
-      <TextInput
-        style={styles.input}
+      <Input
+        label="Fecha"
         value={date}
         onChangeText={(value) => {
           setDate(value);
@@ -240,10 +189,8 @@ export default function TransactionFormScreen({
         placeholder="YYYY-MM-DD"
       />
 
-      <Text style={styles.label}>Nota</Text>
-
-      <TextInput
-        style={[styles.input, styles.noteInput]}
+      <Input
+        label="Nota"
         value={note}
         onChangeText={(value) => {
           setNote(value);
@@ -251,152 +198,100 @@ export default function TransactionFormScreen({
         }}
         placeholder="Descripción opcional"
         multiline
+        inputStyle={styles.noteInput}
       />
 
-      {saveError ? (
-        <Text style={styles.errorText}>
-          {saveError}
-        </Text>
-      ) : null}
+      {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
 
-      <Pressable
-        style={styles.saveButton}
+      <Button
+        title={isEditing ? 'Guardar cambios' : 'Guardar transacción'}
+        variant="success"
         onPress={handleSave}
-      >
-        <Text style={styles.saveButtonText}>
-          {isEditing
-            ? 'Guardar cambios'
-            : 'Guardar transacción'}
-        </Text>
-      </Pressable>
-    </ScrollView>
+        style={styles.saveButton}
+      />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    gap: 10,
+  content: {
+    gap: spacing.md,
   },
-
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
-
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 10,
+    ...typography.title,
   },
-
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 8,
+    ...typography.label,
   },
-
   row: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing.md,
   },
-
   typeButton: {
     flex: 1,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     alignItems: 'center',
+    backgroundColor: colors.surface,
   },
-
-  typeButtonActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+  typeIncomeActive: {
+    backgroundColor: colors.income,
+    borderColor: colors.income,
   },
-
-  typeButtonText: {
+  typeExpenseActive: {
+    backgroundColor: colors.expense,
+    borderColor: colors.expense,
+  },
+  typeText: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
   },
-
-  typeButtonTextActive: {
-    color: '#fff',
+  typeTextActive: {
+    color: colors.textInverse,
     fontWeight: '700',
   },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#aaa',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#fff',
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
-
+  categoryChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  categoryChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryText: {
+    color: colors.text,
+  },
+  categoryTextActive: {
+    color: colors.textInverse,
+    fontWeight: '600',
+  },
   noteInput: {
     minHeight: 90,
     textAlignVertical: 'top',
   },
-
-  categoriesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-
-  categoryButton: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-
-  categoryButtonActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-
-  categoryButtonText: {
-    color: '#333',
-  },
-
-  categoryButtonTextActive: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-
-  selectedText: {
-    marginTop: 4,
-    fontSize: 14,
-    color: '#555',
-  },
-
-  selectedValue: {
-    fontWeight: '700',
-  },
-
   errorText: {
-    color: '#dc2626',
+    color: colors.expense,
     fontSize: 14,
     fontWeight: '600',
-    marginTop: 10,
   },
-
   saveButton: {
-    marginTop: 20,
-    backgroundColor: '#16a34a',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    marginTop: spacing.md,
   },
 });

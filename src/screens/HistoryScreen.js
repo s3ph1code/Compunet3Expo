@@ -10,10 +10,31 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useTransactions } from '../index';
+import { Card, Button, EmptyState } from '../components';
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  formatCurrency,
+  formatMonthLabel,
+} from '../theme';
+
+function Chip({ label, active, onPress }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.chip, active && styles.chipActive]}
+    >
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function HistoryScreen({ navigation }) {
   const {
-    transactions,
     availableMonths,
     filter,
     deleteTransaction,
@@ -48,11 +69,7 @@ export default function HistoryScreen({ navigation }) {
       const confirmed = window.confirm(
         `¿Eliminar la transacción "${transaction.category}"?`
       );
-
-      if (confirmed) {
-        removeTransaction();
-      }
-
+      if (confirmed) removeTransaction();
       return;
     }
 
@@ -60,15 +77,8 @@ export default function HistoryScreen({ navigation }) {
       'Eliminar transacción',
       `¿Deseas eliminar "${transaction.category}"?`,
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: removeTransaction,
-        },
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: removeTransaction },
       ]
     );
   };
@@ -77,67 +87,52 @@ export default function HistoryScreen({ navigation }) {
     const isExpense = item.type === 'expense';
 
     return (
-      <View style={styles.transactionCard}>
+      <Card style={styles.transactionCard}>
         <View style={styles.transactionHeader}>
-          <View>
-            <Text style={styles.category}>
-              {item.category}
-            </Text>
-
-            <Text style={styles.date}>
-              {item.date}
-            </Text>
+          <View style={styles.transactionInfo}>
+            <Text style={styles.category}>{item.category}</Text>
+            <Text style={styles.date}>{item.date}</Text>
           </View>
 
           <Text
             style={[
               styles.amount,
-              isExpense
-                ? styles.expenseAmount
-                : styles.incomeAmount,
+              isExpense ? styles.negative : styles.positive,
             ]}
           >
-            {isExpense ? '-' : '+'}${item.amount}
+            {isExpense ? '-' : '+'}
+            {formatCurrency(item.amount)}
           </Text>
         </View>
 
-        {item.note ? (
-          <Text style={styles.note}>
-            {item.note}
-          </Text>
-        ) : null}
+        {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
 
         <View style={styles.actions}>
-          <Pressable
-            style={styles.editButton}
+          <Button
+            title="Editar"
+            variant="primary"
+            style={styles.actionButton}
             onPress={() =>
               navigation.navigate('TransactionForm', {
                 transactionId: item.id,
               })
             }
-          >
-            <Text style={styles.editButtonText}>
-              Editar
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.deleteButton}
+          />
+          <Button
+            title="Eliminar"
+            variant="danger"
+            style={styles.actionButton}
             onPress={() => handleDelete(item)}
-          >
-            <Text style={styles.deleteButtonText}>
-              Eliminar
-            </Text>
-          </Pressable>
+          />
         </View>
-      </View>
+      </Card>
     );
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text>Cargando movimientos...</Text>
+        <Text style={typography.body}>Cargando movimientos...</Text>
       </View>
     );
   }
@@ -147,110 +142,40 @@ export default function HistoryScreen({ navigation }) {
       <Text style={styles.title}>Historial</Text>
 
       <Text style={styles.label}>Tipo</Text>
-
       <View style={styles.filterRow}>
-        <Pressable
-          style={[
-            styles.filterButton,
-            selectedType === 'all' &&
-              styles.filterButtonActive,
-          ]}
+        <Chip
+          label="Todos"
+          active={selectedType === 'all'}
           onPress={() => setSelectedType('all')}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              selectedType === 'all' &&
-                styles.filterTextActive,
-            ]}
-          >
-            Todos
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[
-            styles.filterButton,
-            selectedType === 'income' &&
-              styles.filterButtonActive,
-          ]}
+        />
+        <Chip
+          label="Ingresos"
+          active={selectedType === 'income'}
           onPress={() => setSelectedType('income')}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              selectedType === 'income' &&
-                styles.filterTextActive,
-            ]}
-          >
-            Ingresos
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[
-            styles.filterButton,
-            selectedType === 'expense' &&
-              styles.filterButtonActive,
-          ]}
+        />
+        <Chip
+          label="Gastos"
+          active={selectedType === 'expense'}
           onPress={() => setSelectedType('expense')}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              selectedType === 'expense' &&
-                styles.filterTextActive,
-            ]}
-          >
-            Gastos
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {availableMonths.length > 0 ? (
         <>
           <Text style={styles.label}>Mes</Text>
-
           <View style={styles.filterRow}>
-            <Pressable
-              style={[
-                styles.filterButton,
-                selectedMonth === null &&
-                  styles.filterButtonActive,
-              ]}
+            <Chip
+              label="Todos"
+              active={selectedMonth === null}
               onPress={() => setSelectedMonth(null)}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedMonth === null &&
-                    styles.filterTextActive,
-                ]}
-              >
-                Todos
-              </Text>
-            </Pressable>
-
+            />
             {availableMonths.map((month) => (
-              <Pressable
+              <Chip
                 key={month}
-                style={[
-                  styles.filterButton,
-                  selectedMonth === month &&
-                    styles.filterButtonActive,
-                ]}
+                label={formatMonthLabel(month)}
+                active={selectedMonth === month}
                 onPress={() => setSelectedMonth(month)}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    selectedMonth === month &&
-                      styles.filterTextActive,
-                  ]}
-                >
-                  {month}
-                </Text>
-              </Pressable>
+              />
             ))}
           </View>
         </>
@@ -261,10 +186,13 @@ export default function HistoryScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         renderItem={renderTransaction}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            No hay movimientos para mostrar.
-          </Text>
+          <EmptyState
+            icon="🔍"
+            title="Nada por aquí"
+            message="No hay movimientos que coincidan con los filtros."
+          />
         }
       />
     </View>
@@ -274,138 +202,94 @@ export default function HistoryScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
   },
-
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
-
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 12,
+    ...typography.title,
+    marginBottom: spacing.md,
   },
-
   label: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginTop: 8,
-    marginBottom: 6,
+    ...typography.label,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
-
   filterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-
-  filterButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  chip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: '#aaa',
-    borderRadius: 18,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
   },
-
-  filterButtonActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-
-  filterText: {
-    color: '#333',
+  chipText: {
+    color: colors.text,
   },
-
-  filterTextActive: {
-    color: '#fff',
+  chipTextActive: {
+    color: colors.textInverse,
     fontWeight: '600',
   },
-
   list: {
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
-
   transactionCard: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    backgroundColor: '#fff',
+    marginBottom: spacing.md,
   },
-
   transactionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: spacing.md,
   },
-
+  transactionInfo: {
+    flexShrink: 1,
+  },
   category: {
     fontSize: 17,
     fontWeight: '700',
+    color: colors.text,
   },
-
   date: {
     marginTop: 4,
-    color: '#666',
+    color: colors.textMuted,
   },
-
   amount: {
     fontSize: 17,
     fontWeight: '700',
   },
-
-  expenseAmount: {
-    color: '#dc2626',
+  positive: {
+    color: colors.income,
   },
-
-  incomeAmount: {
-    color: '#16a34a',
+  negative: {
+    color: colors.expense,
   },
-
   note: {
-    marginTop: 8,
-    color: '#444',
+    marginTop: spacing.sm,
+    color: colors.text,
   },
-
   actions: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
+    gap: spacing.md,
+    marginTop: spacing.md,
   },
-
-  editButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#2563eb',
-  },
-
-  editButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-
-  deleteButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#dc2626',
-  },
-
-  deleteButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-
-  emptyText: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: '#666',
+  actionButton: {
+    flex: 1,
+    paddingVertical: 10,
   },
 });
